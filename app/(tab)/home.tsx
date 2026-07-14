@@ -1,10 +1,10 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import StatCard from '../../components/StatCard';
-import Header from '../../components/Header';
-import CategoryExpense from '../../components/CategoryExpense';
-import RecentEntries from '../../components/RecentEntries';
+import StatCard from '../../components/dashboard/StatCard';
+import Header from '../../components/dashboard/Header';
+import CategoryExpense from '../../components/dashboard/CategoryExpense';
+import RecentEntries from '../../components/dashboard/RecentEntries';
 
 
 export default function App() {
