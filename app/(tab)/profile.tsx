@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { router, Href } from 'expo-router';
 
 // মেনু আইটেমের ইন্টারফেস
 interface MenuItem {
@@ -8,19 +9,38 @@ interface MenuItem {
   title: string;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   isLogout?: boolean;
+  path?:Href
 }
 
 export default function ProfileScreen() {
-  
-  // স্ক্রিনশট অনুযায়ী মেনু লিস্ট ডেটা
+
   const menuItems: MenuItem[] = [
-    { id: '1', title: 'Edit Profile', icon: 'account-outline' },
-    { id: '2', title: 'Change Password', icon: 'lock-outline' },
-    { id: '3', title: 'Manager Management', icon: 'account-group-outline' },
-    { id: '4', title: 'Category Management', icon: 'clipboard-text-outline' },
-    { id: '5', title: 'Settings', icon: 'cog-outline' },
-    { id: '6', title: 'Logout', icon: 'logout', isLogout: true },
-  ];
+  {
+    id: '1',
+    title: 'Edit Profile',
+    icon: 'account-outline',
+    path: '/profile/edit-profile',
+  },
+  {
+    id: '2',
+    title: 'Change Password',
+    icon: 'lock-outline',
+    path: '/profile/change-password',
+  },
+  {
+    id: '3',
+    title: 'Category Management',
+    icon: 'clipboard-text-outline',
+    path: '/profile/category',
+  },
+ 
+  {
+    id: '4',
+    title: 'Logout',
+    icon: 'logout',
+    isLogout: true,
+  },
+];
 
   return (
     <ScrollView className="flex-1 bg-white" showsVerticalScrollIndicator={false}>
@@ -51,8 +71,8 @@ export default function ProfileScreen() {
                 if (item.isLogout) {
                   // লগআউট লজিক এখানে লিখবেন
                   console.log('Logging out...');
-                } else {
-                  console.log(`Navigating to ${item.title}`);
+                } else if (item.path) {
+                 router.push(item.path!);
                 }
               }}
             >
