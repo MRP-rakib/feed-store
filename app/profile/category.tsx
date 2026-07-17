@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,9 +7,11 @@ import {
   ScrollView, 
   KeyboardAvoidingView, 
   Platform,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
 
 interface Category {
   id: string;
@@ -20,50 +22,49 @@ interface SubCategory {
   id: string;
   categoryId: string; 
   name: string;       
-  price: string;
+  price: string | number; // Safe handling for number or string
+  weight: string | number; // Safe handling for number or string
 }
 
 export default function CategoryManagement() {
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 'cat_1', name: 'Cow' },
-    { id: 'cat_2', name: 'Chicken' },
-    { id: 'cat_3', name: 'Duck' },
-  ]);
-
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([
-    { id: 'sub_1', categoryId: 'cat_1', name: 'Layer Feed', price: '45.00' },
-    { id: 'sub_2', categoryId: 'cat_2', name: 'Broiler Starter', price: '52.50' },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const [newCategoryInput, setNewCategoryInput] = useState<string>('');
   const [subCategoryInput, setSubCategoryInput] = useState<string>('');
   const [priceInput, setPriceInput] = useState<string>('');
+  const [weightInput, setWeightInput] = useState<string>('');
   const [editingSubCategoryId, setEditingSubCategoryId] = useState<string | null>(null);
 
-  const handleAddCategory = (): void => {
-    if (!newCategoryInput.trim()) {
-      Alert.alert('Error', 'Please enter a dynamic category name.');
-      return;
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('id, name');
+
+      if (catError) throw catError;
+      setCategories(catData || []);
+
+      const { data: subData, error: subError } = await supabase
+        .from('subcategories')
+        .select('id, categoryId:category_id, name, price, weight');
+
+      if (subError) throw subError;
+      setSubCategories(subData || []);
+
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to fetch data from database.');
+    } finally {
+      setLoading(false);
     }
-
-    const exists = categories.some(
-      cat => cat.name.toLowerCase() === newCategoryInput.trim().toLowerCase()
-    );
-    if (exists) {
-      Alert.alert('Error', 'This category already exists.');
-      return;
-    }
-
-    const newCat: Category = {
-      id: `cat_${Date.now()}`,
-      name: newCategoryInput.trim(),
-    };
-
-    setCategories(prev => [...prev, newCat]);
-    setNewCategoryInput('');
-    Alert.alert('Success', `"${newCat.name}" category added successfully!`);
   };
 
   const handleSelectCategory = (category: Category): void => {
@@ -71,10 +72,11 @@ export default function CategoryManagement() {
     setIsDropdownOpen(false);
     setSubCategoryInput('');
     setPriceInput('');
+    setWeightInput('');
     setEditingSubCategoryId(null);
   };
 
-  const handleAddOrUpdateSubCategory = (): void => {
+  const handleAddOrUpdateSubCategory = async (): Promise<void> => {
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a Category first from the dropdown.');
       return;
@@ -83,52 +85,109 @@ export default function CategoryManagement() {
       Alert.alert('Error', 'Please enter a Subcategory (Feed Type) name.');
       return;
     }
+    if (!weightInput.trim() || isNaN(Number(weightInput))) {
+      Alert.alert('Error', 'Please enter a valid weight.');
+      return;
+    }
     if (!priceInput.trim() || isNaN(Number(priceInput))) {
       Alert.alert('Error', 'Please enter a valid price.');
       return;
     }
 
-    if (editingSubCategoryId) {
-      setSubCategories(prev =>
-        prev.map(sub =>
-          sub.id === editingSubCategoryId
-            ? { ...sub, name: subCategoryInput.trim(), price: priceInput.trim() }
-            : sub
-        )
-      );
-      setEditingSubCategoryId(null);
-    } else {
-      const newSubCategory: SubCategory = {
-        id: Date.now().toString(),
-        categoryId: selectedCategory.id,
-        name: subCategoryInput.trim(),
-        price: priceInput.trim(),
-      };
-      setSubCategories(prev => [...prev, newSubCategory]);
-    }
+    try {
+      if (editingSubCategoryId) {
+        const { error } = await supabase
+          .from('subcategories')
+          .update({
+            name: subCategoryInput.trim(),
+            price: priceInput.trim(),
+            weight: weightInput.trim()
+          })
+          .eq('id', editingSubCategoryId);
 
-    setSubCategoryInput('');
-    setPriceInput('');
+        if (error) throw error;
+
+        setSubCategories(prev =>
+          prev.map(sub =>
+            sub.id === editingSubCategoryId
+              ? { 
+                  ...sub, 
+                  name: subCategoryInput.trim(), 
+                  price: priceInput.trim(), 
+                  weight: weightInput.trim() 
+                }
+              : sub
+          )
+        );
+        setEditingSubCategoryId(null);
+        Alert.alert('Success', 'Subcategory updated successfully!');
+      } else {
+        const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+const { data, error } = await supabase
+  .from('subcategories')
+  .insert([
+    {
+      category_id: selectedCategory.id,
+      user_id: user?.id,
+      name: subCategoryInput.trim(),
+      price: priceInput.trim(),
+      weight: weightInput.trim(),
+    }
+  ])
+  .select('id, category_id, user_id, name, price, weight')
+  .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const newSubCategory: SubCategory = {
+            id: data.id,
+            categoryId: data.category_id,
+            name: data.name,
+            price: data.price,
+            weight: data.weight
+          };
+
+          setSubCategories(prev => [...prev, newSubCategory]);
+          Alert.alert('Success', 'Subcategory added successfully!');
+        }
+      }
+
+      setSubCategoryInput('');
+      setPriceInput('');
+      setWeightInput('');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save changes to database.');
+    }
   };
 
   const handleEditSubCategory = (subCat: SubCategory): void => {
     setSubCategoryInput(subCat.name);
-    setPriceInput(subCat.price);
+    
+    // Convert to String to avoid react-native TextInput crash or empty value bugs
+    setPriceInput(subCat.price !== null && subCat.price !== undefined ? subCat.price.toString() : '');
+    setWeightInput(subCat.weight !== null && subCat.weight !== undefined ? subCat.weight.toString() : '');
+    
     setEditingSubCategoryId(subCat.id);
-  };
-
-  const handleDeleteSubCategory = (id: string): void => {
-    setSubCategories(prev => prev.filter(sub => sub.id !== id));
-    if (editingSubCategoryId === id) {
-      setEditingSubCategoryId(null);
-      setSubCategoryInput('');
-      setPriceInput('');
-    }
   };
 
   const activeSubCategories = selectedCategory
     ? subCategories.filter(sub => sub.categoryId === selectedCategory.id)
     : [];
+
+  if (loading) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center">
+          <ActivityIndicator size="large" color="#059669" />
+          <Text className="text-emerald-700 mt-4 font-semibold text-base">Loading Database...</Text>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -139,59 +198,41 @@ export default function CategoryManagement() {
         >
           <ScrollView 
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
-            className="p-6"
+            className="p-5"
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={true}
+            showsVerticalScrollIndicator={false}
           >
-            <View className="mb-6 mt-2">
-              <Text className="text-2xl font-bold text-slate-900">Feed & Category Management</Text>
-              <Text className="text-sm text-slate-500 mt-1">
-                Manage main content categories and configure subcategory pricing models.
+            {/* Header section with green touch */}
+            <View className="mb-6 mt-3 px-1">
+              <Text className="text-2xl font-black text-slate-900 tracking-tight">Feed Management</Text>
+              <Text className="text-sm text-slate-500 mt-1.5 font-medium">
+                Create, update and configure dynamic feed models for livestock.
               </Text>
             </View>
 
-            <View className="mb-6 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm shadow-slate-100">
-              <Text className="text-sm font-semibold text-slate-700 mb-2">Create Main Category</Text>
-              <View className="flex-row space-x-2">
-                <TextInput
-                  placeholder="e.g. Goat, Sheep, Fish"
-                  placeholderTextColor="#94a3b8"
-                  value={newCategoryInput}
-                  onChangeText={(text: string) => setNewCategoryInput(text)}
-                  className="flex-1 h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-900"
-                />
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleAddCategory}
-                  className="px-5 bg-green-600 rounded-xl justify-center items-center shadow-sm active:bg-green-700"
-                >
-                  <Text className="text-sm font-bold text-white">Add Category</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="mb-6 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm shadow-slate-100 relative" style={{ zIndex: 999 }}>
-              <Text className="text-sm font-semibold text-slate-700 mb-2">Select Main Category</Text>
+            {/* Dropdown Card */}
+            <View className="mb-5 p-5 bg-white border border-emerald-100 rounded-2xl shadow-sm relative" style={{ zIndex: 999 }}>
+              <Text className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">Main Category</Text>
               
               <TouchableOpacity 
-                activeOpacity={0.7}
+                activeOpacity={0.8}
                 onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl flex-row items-center justify-between"
+                className="w-full h-12 px-4 bg-emerald-50/40 border border-emerald-100 rounded-xl flex-row items-center justify-between"
               >
-                <Text className={`text-base ${selectedCategory ? 'text-slate-990' : 'text-slate-400'}`}>
-                  {selectedCategory ? selectedCategory.name : 'Choose a dynamic category'}
+                <Text className={`text-base font-semibold ${selectedCategory ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {selectedCategory ? selectedCategory.name : 'Select a Category'}
                 </Text>
-                <Text className="text-slate-400 font-bold">{isDropdownOpen ? '▲' : '▼'}</Text>
+                <Text className="text-emerald-600 font-bold text-xs">{isDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isDropdownOpen && (
-                <View className="absolute top-[84px] left-5 right-5 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-200 overflow-hidden" style={{ zIndex: 1000 }}>
+                <View className="absolute top-[86px] left-5 right-5 bg-white border border-emerald-100 rounded-xl shadow-xl overflow-hidden" style={{ zIndex: 1000 }}>
                   <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
                     {categories.map((item) => (
                       <TouchableOpacity
                         key={item.id}
                         onPress={() => handleSelectCategory(item)}
-                        className="w-full px-4 py-3 border-b border-slate-50 last:border-b-0 active:bg-slate-50"
+                        className="w-full px-4 py-3.5 border-b border-slate-50 active:bg-emerald-50"
                       >
                         <Text className="text-base text-slate-700 font-medium">{item.name}</Text>
                       </TouchableOpacity>
@@ -201,97 +242,122 @@ export default function CategoryManagement() {
               )}
             </View>
 
+            {/* Form Section */}
             {selectedCategory ? (
-              <View className="mb-6 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm shadow-slate-100">
-                <Text className="text-base font-bold text-slate-800 mb-3">
-                  {editingSubCategoryId ? `Update Subcategory for ${selectedCategory.name}` : `Add Subcategory to ${selectedCategory.name}`}
+              <View className="mb-5 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                <Text className="text-lg font-extrabold text-slate-900 mb-4">
+                  {editingSubCategoryId ? `✏️ Edit Model` : `➕ Add New Feed Model`}
                 </Text>
                 
-                <View className="mb-3">
-                  <Text className="text-xs font-semibold text-slate-600 mb-1">Subcategory (Feed Type)</Text>
+                <View className="mb-4">
+                  <Text className="text-xs font-bold text-slate-600 mb-1.5">Subcategory (Feed Name)</Text>
                   <TextInput
-                    placeholder="e.g. Starter Feed, Growing Feed"
+                    placeholder="e.g. Broiler Starter, Grower"
                     placeholderTextColor="#94a3b8"
                     value={subCategoryInput}
                     onChangeText={(text: string) => setSubCategoryInput(text)}
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-900"
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-900 focus:border-emerald-500"
                   />
                 </View>
 
                 <View className="mb-4">
-                  <Text className="text-xs font-semibold text-slate-600 mb-1">Price per KG ($)</Text>
-                  <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 h-11">
-                    <Text className="text-base text-slate-400 mr-1">$</Text>
+                  <Text className="text-xs font-bold text-slate-600 mb-1.5">Weight / Quantity (kg)</Text>
+                  <TextInput
+                    placeholder="e.g. 50"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    value={weightInput}
+                    onChangeText={(text: string) => setWeightInput(text)}
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-base text-slate-900 focus:border-emerald-500"
+                  />
+                </View>
+
+                <View className="mb-5">
+                  <Text className="text-xs font-bold text-slate-600 mb-1.5">Price per Unit (৳)</Text>
+                  <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 h-11 focus:border-emerald-500">
+                    <Text className="text-base text-slate-500 font-bold mr-1.5">৳</Text>
                     <TextInput
                       placeholder="0.00"
                       placeholderTextColor="#94a3b8"
                       keyboardType="decimal-pad"
                       value={priceInput}
                       onChangeText={(text: string) => setPriceInput(text)}
-                      className="flex-1 h-full text-base text-slate-900"
+                      className="flex-1 h-full text-base text-slate-900 font-medium"
                     />
                   </View>
                 </View>
 
+                {/* Main Green Action Button */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={handleAddOrUpdateSubCategory}
-                  className="w-full h-11 bg-green-600 rounded-xl justify-center items-center shadow-sm active:bg-green-700"
+                  className="w-full h-12 bg-green-600 rounded-xl justify-center items-center shadow-md shadow-emerald-200 active:bg-emerald-700"
                 >
                   <Text className="text-base font-bold text-white">
-                    {editingSubCategoryId ? 'Update Subcategory' : 'Save Subcategory'}
+                    {editingSubCategoryId ? 'Update Changes' : 'Save Feed Model'}
                   </Text>
                 </TouchableOpacity>
               </View>
             ) : null}
 
-            <View className="p-5 bg-slate-100/90 border border-slate-200 rounded-2xl">
-              <Text className="text-base font-bold text-slate-800 mb-1">
-                {selectedCategory ? `${selectedCategory.name} Subcategories` : 'Subcategories List'}
-              </Text>
-              <Text className="text-xs text-slate-500 mb-4">
-                {selectedCategory ? `Showing feed models assigned to ${selectedCategory.name}` : 'Please select a main category to filter results.'}
-              </Text>
+            {/* Listing Section */}
+            <View className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+              <View className="mb-4">
+                <Text className="text-base font-extrabold text-slate-900">
+                  {selectedCategory ? `List: ${selectedCategory.name}` : 'Subcategories'}
+                </Text>
+                <Text className="text-xs text-slate-500 mt-0.5">
+                  {selectedCategory ? 'Manage configured models for this category' : 'Select a main category to manage subcategories.'}
+                </Text>
+              </View>
 
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: 10 }}>
                 {selectedCategory && activeSubCategories.map((item) => (
                   <View 
                     key={item.id} 
-                    className="flex-row items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-200/60 shadow-xs"
+                    className="flex-row items-center justify-between bg-white px-4 py-3.5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden"
                   >
-                    <View className="flex-1 pr-2">
-                      <Text className="text-base text-slate-800 font-semibold">{item.name}</Text>
-                      <Text className="text-sm text-slate-700 font-medium mt-0.5">${item.price}</Text>
+                    {/* Active Feed Indicator on Left */}
+                    <View className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                    
+                    <View className="flex-1 pl-1 pr-2">
+                      <Text className="text-base text-slate-900 font-bold">{item.name}</Text>
+                      <View className="flex-row items-center mt-1">
+                        <View className="bg-slate-100 px-2 py-0.5 rounded-md">
+                          <Text className="text-xs text-slate-600 font-bold">Wt: {item.weight} kg</Text>
+                        </View>
+                        <Text className="text-xs text-slate-300 mx-2">|</Text>
+                        <Text className="text-sm text-emerald-700 font-extrabold">৳ {item.price}</Text>
+                      </View>
                     </View>
                     
-                    <View className="flex-row space-x-2">
+                    {/* Modern Action Buttons */}
+                    <View className="flex-row">
                       <TouchableOpacity 
                         onPress={() => handleEditSubCategory(item)}
-                        className="px-3 py-1.5 bg-blue-50 rounded-lg"
+                        className="px-4 py-2 bg-emerald-50 active:bg-emerald-100 rounded-xl"
+                        activeOpacity={0.7}
                       >
-                        <Text className="text-xs font-bold text-blue-600">Edit</Text>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity 
-                        onPress={() => handleDeleteSubCategory(item.id)}
-                        className="px-3 py-1.5 bg-red-50 rounded-lg"
-                      >
-                        <Text className="text-xs font-bold text-red-500">Delete</Text>
+                        <Text className="text-xs font-black text-emerald-700 uppercase tracking-wider">Edit</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 ))}
 
                 {selectedCategory && activeSubCategories.length === 0 && (
-                  <Text className="text-sm text-slate-400 text-center py-6 bg-white rounded-xl border border-dashed border-slate-300">
-                    No subcategories found for {selectedCategory.name}. Add one above!
-                  </Text>
+                  <View className="py-8 bg-white/80 border border-dashed border-emerald-200 rounded-xl items-center justify-center">
+                    <Text className="text-sm text-emerald-700 font-medium text-center">
+                      No models yet. Add your first model above!
+                    </Text>
+                  </View>
                 )}
 
                 {!selectedCategory && (
-                  <Text className="text-sm text-slate-400 text-center py-6 bg-white rounded-xl border border-dashed border-slate-300">
-                    Choose a main category from dropdown to view configurations.
-                  </Text>
+                  <View className="py-8 bg-white/80 border border-dashed border-slate-200 rounded-xl items-center justify-center">
+                    <Text className="text-sm text-slate-400 font-medium text-center">
+                      Choose a main category from dropdown above.
+                    </Text>
+                  </View>
                 )}
               </View>
             </View>

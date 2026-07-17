@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
-// react-native এর বদলে এখান থেকে ইম্পোর্ট করুন 👇
-import { SafeAreaView } from 'react-native-safe-area-context'; 
-import DailyReport from '../../components/reports/Daily';
 import MonthlyReport from '../../components/reports/Monthly'
 import YearlyReport from '../../components/reports/Yearly';
 
 
-type TabType = 'Daily' | 'Monthly' | 'Yearly';
+type TabType =  'Monthly' | 'Yearly';
 
 export default function ReportScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>('Monthly');
 
   return (
-    // edges={['top']} দিলে শুধু উপরের নচ এরিয়া সেফ থাকবে, নিচে কোনো ফালতু স্পেস নিবে না
     <View className="flex-1 bg-gray-50">
       {/* টপ ট্যাব বার */}
       <View className="flex-row bg-white border-b border-gray-200">
-        {(['Daily', 'Monthly', 'Yearly'] as TabType[]).map((tab) => {
+        {(['Monthly', 'Yearly'] as TabType[]).map((tab) => {
           const isActive = selectedTab === tab;
           return (
             <TouchableOpacity
@@ -35,7 +31,6 @@ export default function ReportScreen() {
 
       {/* কন্ডিশন অনুযায়ী আলাদা কম্পোনেন্ট লোড হবে */}
       <View className="flex-1">
-        {selectedTab === 'Daily' && < DailyReport/>}
         {selectedTab === 'Monthly' && <MonthlyReport/>}
         {selectedTab === 'Yearly' && <YearlyReport />}
       </View>
