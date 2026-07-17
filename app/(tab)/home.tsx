@@ -4,7 +4,6 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 
 import StatCard from '../../components/dashboard/StatCard';
-import Header from '../../components/dashboard/Header';
 import CategoryExpense from '../../components/dashboard/CategoryExpense';
 import RecentEntries from '../../components/dashboard/RecentEntries';
 
@@ -83,8 +82,7 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView className="flex-1 bg-gray-50">
         <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchDashboardMetrics} />}>
-          <Header />
-          <View className="flex-row flex-wrap justify-between px-4 gap-y-3">
+          <View className="flex-row flex-wrap justify-between py-4 px-4 gap-y-3">
             <StatCard title="Today's Expense" value={`৳ ${stats.todayExpense.toLocaleString()}`} icon="cash" iconBg="bg-green-600" borderColor="border-green-200" textColor="text-green-700" />
             <StatCard title="Total Feed Bags" value={`${stats.todayBags} Bags`} icon="album" iconBg="bg-blue-500" borderColor="border-blue-200" textColor="text-blue-600" />
             <StatCard title="This Month's Expense" value={`৳ ${stats.monthExpense.toLocaleString()}`} icon="calendar" iconBg="bg-purple-500" borderColor="border-purple-200" textColor="text-purple-700" />
