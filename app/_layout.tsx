@@ -4,7 +4,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { ActivityIndicator, View } from 'react-native';
-
+import Toast from 'react-native-toast-message'
+import { toastConfig } from '../components/ToastConfig';
 export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
@@ -27,7 +28,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading) return;
 
-    // এখানে যে পেজগুলো পাবলিক (লগইন করা ছাড়াও দেখা যাবে), সেগুলোর নাম যোগ করুন
     const publicPages = ['login', 'register']; 
     const inAuthPage = publicPages.includes(segments[0]);
 
@@ -47,11 +47,14 @@ export default function RootLayout() {
   }
 
   return (
+    <>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="(tab)" />
     </Stack>
+    <Toast config={toastConfig}/>
+    </>
   );
 }

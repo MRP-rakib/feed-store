@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import Toast from 'react-native-toast-message';
 
 interface Category {
   id: string;
@@ -22,8 +23,8 @@ interface SubCategory {
   id: string;
   categoryId: string; 
   name: string;       
-  price: string | number; // Safe handling for number or string
-  weight: string | number; // Safe handling for number or string
+  price: string | number; 
+  weight: string | number; 
 }
 
 export default function CategoryManagement() {
@@ -78,19 +79,35 @@ export default function CategoryManagement() {
 
   const handleAddOrUpdateSubCategory = async (): Promise<void> => {
     if (!selectedCategory) {
-      Alert.alert('Error', 'Please select a Category first from the dropdown.');
+       Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:'Please select a Category first from the dropdown.'
+      })
       return;
     }
     if (!subCategoryInput.trim()) {
-      Alert.alert('Error', 'Please enter a Subcategory (Feed Type) name.');
+      Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:'Please enter a Subcategory (Feed Type) name.'
+      })
       return;
     }
     if (!weightInput.trim() || isNaN(Number(weightInput))) {
-      Alert.alert('Error', 'Please enter a valid weight.');
+      Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:'Please enter a valid weight.'
+      })
       return;
     }
     if (!priceInput.trim() || isNaN(Number(priceInput))) {
-      Alert.alert('Error', 'Please enter a valid price.');
+      Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:'Please enter a valid price.'
+      })
       return;
     }
 
@@ -120,7 +137,11 @@ export default function CategoryManagement() {
           )
         );
         setEditingSubCategoryId(null);
-        Alert.alert('Success', 'Subcategory updated successfully!');
+Toast.show({
+        type:'success',
+        text1:'Success',
+        text2:'Subcategory updated successfully!'
+      }) 
       } else {
         const {
   data: { user },
@@ -152,7 +173,11 @@ const { data, error } = await supabase
           };
 
           setSubCategories(prev => [...prev, newSubCategory]);
-          Alert.alert('Success', 'Subcategory added successfully!');
+          Toast.show({
+        type:'success',
+        text1:'Success',
+        text2:'Subcategory added successfully!'
+      }) 
         }
       }
 
@@ -160,14 +185,16 @@ const { data, error } = await supabase
       setPriceInput('');
       setWeightInput('');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save changes to database.');
+    Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:error.message
+      }) 
     }
   };
 
   const handleEditSubCategory = (subCat: SubCategory): void => {
     setSubCategoryInput(subCat.name);
-    
-    // Convert to String to avoid react-native TextInput crash or empty value bugs
     setPriceInput(subCat.price !== null && subCat.price !== undefined ? subCat.price.toString() : '');
     setWeightInput(subCat.weight !== null && subCat.weight !== undefined ? subCat.weight.toString() : '');
     
@@ -261,7 +288,7 @@ const { data, error } = await supabase
                 </View>
 
                 <View className="mb-4">
-                  <Text className="text-xs font-bold text-slate-600 mb-1.5">Weight / Quantity (kg)</Text>
+                  <Text className="text-xs font-bold text-slate-600 mb-1.5">Weight (kg)</Text>
                   <TextInput
                     placeholder="e.g. 50"
                     placeholderTextColor="#94a3b8"
@@ -286,8 +313,6 @@ const { data, error } = await supabase
                     />
                   </View>
                 </View>
-
-                {/* Main Green Action Button */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={handleAddOrUpdateSubCategory}

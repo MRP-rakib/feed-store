@@ -23,7 +23,7 @@ export default function App() {
     monthExpense: 0,
     yearExpense: 0,
   });
-  
+
   const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([]);
   const [recentData, setRecentData] = useState<any[]>([]);
 
@@ -46,13 +46,13 @@ export default function App() {
       const monthExpenseSum = (monthData || []).reduce((sum, curr) => sum + (Number(curr.grand_total) || 0), 0);
       const yearExpenseSum = (yearData || []).reduce((sum, curr) => sum + (Number(curr.grand_total) || 0), 0);
 
-      const categoriesList = ['Chicken', 'Cow', 'Fish', 'Other'];
+      const categoriesList = ['Boiler', 'Cattle', 'Fish', 'Other'];
+
       const grouped = (catData || []).reduce((acc: any, curr: any) => {
-        const rawName = (curr.categories?.name || 'Other').toLowerCase();
-        const normalized = rawName.includes('chicken') || rawName.includes('poultry') ? 'Chicken' :
-                           rawName.includes('cow') || rawName.includes('cattle') ? 'Cow' :
-                           rawName.includes('fish') ? 'Fish' : 'Other';
-        acc[normalized] = (acc[normalized] || 0) + (Number(curr.grand_total) || 0);
+        const categoryName = curr.categories?.name || 'Other';
+
+        acc[categoryName] = (acc[categoryName] || 0) + (Number(curr.grand_total) || 0);
+
         return acc;
       }, {});
 

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -25,69 +26,105 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'All fields are required');
-      return;
-    }
+    const { count, error: countError } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
+  if (count && count > 0) {
+    Toast.show({
+      type: "error",
+      text1: "Access Denied",
+      text2: "Registration is restricted to only one user.",
+    });
+    return;
+  }
+  if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
+    Toast.show({
+      type: "error",
+      text1: "Missing Information",
+      text2: "All fields are required.",
+    });
+    return;
+  }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
+  if (password.length < 6) {
+    Toast.show({
+      type: "error",
+      text1: "Weak Password",
+      text2: "Password must be at least 6 characters.",
+    });
+    return;
+  }
 
-    setLoading(true);
+  if (password !== confirmPassword) {
+    Toast.show({
+      type: "error",
+      text1: "Password Mismatch",
+      text2: "Passwords do not match.",
+    });
+    return;
+  }
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
+  setLoading(true);
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      Toast.show({
+        type: "error",
+        text1: "Registration Failed",
+        text2: error.message,
       });
+      return;
+    }
 
-      if (error) {
-        Alert.alert('Registration Error', error.message);
-        setLoading(false);
+    if (data.user) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            user_id: data.user.id,
+            full_name: "",
+            farm_name: "",
+            avatar: null,
+          },
+        ]);
+
+      if (profileError) {
+        Toast.show({
+          type: "error",
+          text1: "Profile Error",
+          text2: profileError.message,
+        });
         return;
       }
-
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: data.user.id,
-              full_name: '',
-              farm_name: '',
-              avatar: null,
-            },
-          ]);
-
-        if (profileError) {
-          Alert.alert('Profile Error', profileError.message);
-          setLoading(false);
-          return;
-        }
-      }
-
-      await AsyncStorage.setItem('isRegistered', 'true');
-
-      Alert.alert(
-        'Success',
-        'Account created successfully'
-      );
-
-      router.replace('/login');
-
-    } catch (err: any) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    await AsyncStorage.setItem("isRegistered", "true");
+
+    Toast.show({
+      type: "success",
+      text1: "Registration Successful 🎉",
+      text2: "Your account has been created.",
+    });
+
+    setTimeout(() => {
+      router.replace("/login");
+    }, 1000);
+  } catch (err: any) {
+    Toast.show({
+      type: "error",
+      text1: "Unexpected Error",
+      text2: err.message || "Something went wrong.",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   return (

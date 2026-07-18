@@ -2,11 +2,10 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// প্রপ্সগুলোর জন্য ইন্টারফেস ডিফাইন করা হলো
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap; // আইকনের নামগুলো যাতে অটো-সাজেস্ট করে
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   iconBg: string;
   borderColor: string;
   textColor: string;

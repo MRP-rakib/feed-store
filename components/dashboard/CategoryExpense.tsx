@@ -9,8 +9,8 @@ interface CategoryExpenseProps {
 export default function CategoryExpense({ data }: CategoryExpenseProps) {
   const getStyle = (name: string) => {
     switch (name) {
-      case 'Chicken': return { icon: 'bird', color: '#f59e0b' };
-      case 'Cow': return { icon: 'cow', color: '#8b5cf6' };
+      case 'Boiler': return { icon: 'bird', color: '#f59e0b' };
+      case 'Cattle': return { icon: 'cow', color: '#8b5cf6' };
       case 'Fish': return { icon: 'fish', color: '#0ea5e9' };
       default: return { icon: 'dots-horizontal', color: '#64748b' };
     }

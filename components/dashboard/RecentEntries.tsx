@@ -19,7 +19,6 @@ export default function RecentEntries({ entries }: RecentEntriesProps) {
   const displayedEntries = entries.slice(0, 5);
 
   const handleSeeAll = () => {
-    // Expo Router অনুযায়ী আপনার কাঙ্ক্ষিত স্ক্রিনের পাথে রিডাইরেক্ট করবে
     router.push('/(tab)/history'); 
   };
 

@@ -14,6 +14,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../lib/supabase';
+import Toast from 'react-native-toast-message';
 
 interface Category {
   id: string;
@@ -143,6 +144,11 @@ export default function FeedEntryForm() {
       setSubCategories(subData || []);
 
     } catch (error: any) {
+      Toast.show({
+        type:'error',
+        text1:'Database Fetch Error',
+        text2:error.message 
+      })
       Alert.alert('Database Fetch Error', error.message || 'Could not fetch records.');
     } finally {
       setLoading(false);
@@ -172,15 +178,27 @@ export default function FeedEntryForm() {
 
   const handleSave = async (): Promise<void> => {
     if (!selectedCategory) {
-      Alert.alert('Validation Error', 'Please select a main category.');
+      Toast.show({
+        type:'error',
+        text1:'Validation Error',
+        text2:'Please select a main category.'
+      })
       return;
     }
     if (!selectedSubCategory) {
-      Alert.alert('Validation Error', 'Please select a subcategory model.');
+      Toast.show({
+        type:'error',
+        text1:'Validation Error',
+        text2:'Please select a subcategory model.'
+      })
       return;
     }
     if (!totalBags.trim() || isNaN(Number(totalBags)) || Number(totalBags) <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid bag count.');
+     Toast.show({
+        type:'error',
+        text1:'Validation Error',
+        text2:'Please enter a valid bag count.'
+      })
       return;
     }
 
@@ -223,9 +241,11 @@ export default function FeedEntryForm() {
         ]);
 
       if (error) throw error;
-
-      Alert.alert('Success', 'Entry saved successfully!');
-      
+Toast.show({
+        type:'success',
+        text1:'Success',
+        text2:'Entry saved successfully!'
+      })      
       setSelectedCategory(null);
       setSelectedSubCategory(null);
       setTotalBags('');
@@ -234,7 +254,11 @@ export default function FeedEntryForm() {
       setDate(new Date());
 
     } catch (error: any) {
-      Alert.alert('Database Connection Error', error.message || 'Failed to save entries data.');
+      Toast.show({
+        type:'error',
+        text1:'Database Connection Error',
+        text2:error.message
+      })
     } finally {
       setSubmitting(false);
     }
@@ -259,7 +283,7 @@ export default function FeedEntryForm() {
           className="flex-1"
         >
           <ScrollView 
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 200 }}
             className="px-5 py-6"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -297,7 +321,7 @@ export default function FeedEntryForm() {
                   mode="date"
                   display="default"
                   maximumDate={new Date()} 
-                  onChange={onDateValueChange}      
+                  onValueChange={onDateValueChange}      
                 />
               )}
             </View>
@@ -363,11 +387,15 @@ export default function FeedEntryForm() {
             <View className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5 mb-5 gap-3">
               <View className="flex-row justify-between items-center pb-2 border-b border-emerald-100/50">
                 <Text className="text-slate-500 font-bold text-xs uppercase">Calculated Weight (Total KG)</Text>
-                <Text className="text-emerald-950 font-black text-lg">{formatNumber(calculatedKg)} kg</Text>
+                <Text className="text-emerald-950 font-black text-lg">{calculatedKg >= 1000 ? `${parseFloat((calculatedKg / 1000).toFixed(3))} Ton` : `${calculatedKg} kg`}</Text>
               </View>
               <View className="flex-row justify-between items-center pb-2 border-b border-emerald-100/50">
                 <Text className="text-slate-500 font-bold text-xs uppercase">Feed Sub-Total</Text>
                 <Text className="text-slate-900 font-bold text-lg">৳ {formatNumber(totalPrice)}</Text>
+              </View>
+              <View className="flex-row justify-between items-center pb-2 border-b border-emerald-100/50">
+                <Text className="text-slate-500 font-bold text-xs uppercase">Transport Cost</Text>
+                <Text className="text-slate-900 font-bold text-lg">৳ {transportCost}</Text>
               </View>
               <View className="flex-row justify-between items-center pt-1">
                 <Text className="text-emerald-800 font-bold text-sm uppercase">Grand Total Cost</Text>

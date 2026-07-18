@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import Toast from 'react-native-toast-message';
 
 export default function YearlyReportScreen() {
   const [entries, setEntries] = useState<any[]>([]);
@@ -21,6 +22,11 @@ export default function YearlyReportScreen() {
       if (error) throw error;
       setEntries(data || []);
     } catch (error: any) {
+      Toast.show({
+        type:'error',
+        text1:'Error',
+        text2:error.message
+      })
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
@@ -30,7 +36,7 @@ export default function YearlyReportScreen() {
   const report = useMemo(() => {
     const stats = {
       totalBags: 0, 
-      totalTransport: 0, 
+      totalWeight: 0, 
       totalCost: 0,
       breakdown: { Chicken: 0, Cow: 0, Fish: 0, Other: 0 }
     };
@@ -39,14 +45,14 @@ export default function YearlyReportScreen() {
       const entryDate = new Date(item.entry_date);
       if (entryDate.getFullYear() === selectedYear) {
         stats.totalBags += Number(item.total_bag) || 0;
-        stats.totalTransport += Number(item.transport_cost) || 0;
+        stats.totalWeight += Number(item.total_kg) || 0;
         stats.totalCost += Number(item.grand_total) || 0;
 
         const cat = (item.categories?.name || 'Other').toLowerCase();
         const cost = Number(item.grand_total) || 0;
 
-        if (cat.includes('chicken') || cat.includes('poultry')) stats.breakdown.Chicken += cost;
-        else if (cat.includes('cow') || cat.includes('cattle')) stats.breakdown.Cow += cost;
+        if (cat.includes('boiler') || cat.includes('poultry')) stats.breakdown.Chicken += cost;
+        else if (cat.includes('cattle') || cat.includes('cattle')) stats.breakdown.Cow += cost;
         else if (cat.includes('fish')) stats.breakdown.Fish += cost;
         else stats.breakdown.Other += cost;
       }
@@ -64,7 +70,7 @@ export default function YearlyReportScreen() {
         </TouchableOpacity>
         
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text className="font-black text-slate-800 text-lg" numberOfLines={1} adjustsFontSizeToFit>
+          <Text style={{ flexShrink: 0 }} className="font-black  text-slate-800 text-lg" numberOfLines={1} adjustsFontSizeToFit>
             Year: {selectedYear}
           </Text>
         </View>
@@ -73,28 +79,28 @@ export default function YearlyReportScreen() {
           <MaterialCommunityIcons name="chevron-right" size={24} color="#334155" />
         </TouchableOpacity>
       </View>
-
-      <View className="bg-emerald-600 rounded-2xl p-6 mb-8 shadow-lg">
-        <Text className="text-emerald-100 text-xs uppercase font-bold tracking-widest">Total Expenditure ({selectedYear})</Text>
-        <Text className="text-white text-4xl font-black mt-1">৳ {report.totalCost.toLocaleString()}</Text>
-      </View>
-
       <View className="flex-row justify-between mb-8">
         <View className="bg-white p-4 rounded-2xl w-[48%] border border-emerald-100 shadow-sm">
           <Text className="text-slate-400 text-xs font-bold uppercase">Total Bags</Text>
           <Text className="text-emerald-600 text-2xl font-black">{report.totalBags}</Text>
         </View>
         <View className="bg-white p-4 rounded-2xl w-[48%] border border-emerald-100 shadow-sm">
-          <Text className="text-slate-400 text-xs font-bold uppercase">Transport</Text>
-          <Text className="text-rose-600 text-2xl font-black">৳ {report.totalTransport.toLocaleString()}</Text>
+          <Text className="text-slate-400 text-xs font-bold uppercase">Total Weight</Text>
+          <Text className="text-emerald-600 text-2xl font-black">{report.totalWeight >= 1000 
+    ? `${(report.totalWeight / 1000).toFixed(2)} Ton` 
+    : `${report.totalWeight.toFixed(2)} kg`}</Text>
         </View>
+      </View>
+      <View className="bg-emerald-600 rounded-2xl p-6 mb-8 shadow-lg">
+        <Text className="text-emerald-100 text-xs uppercase font-bold tracking-widest">Total Expenditure ({selectedYear})</Text>
+        <Text className="text-white text-4xl font-black mt-1">৳ {report.totalCost.toLocaleString()}</Text>
       </View>
 
       <Text className="text-slate-800 font-bold text-lg mb-4">Category Breakdown</Text>
       <View className="space-y-3">
         {[
-          { label: 'Chicken', val: report.breakdown.Chicken, icon: 'bird', color: '#f59e0b' },
-          { label: 'Cow', val: report.breakdown.Cow, icon: 'cow', color: '#8b5cf6' },
+          { label: 'Boiler', val: report.breakdown.Chicken, icon: 'bird', color: '#f59e0b' },
+          { label: 'Cattle', val: report.breakdown.Cow, icon: 'cow', color: '#8b5cf6' },
           { label: 'Fish', val: report.breakdown.Fish, icon: 'fish', color: '#0ea5e9' },
           { label: 'Other', val: report.breakdown.Other, icon: 'dots-horizontal', color: '#64748b' },
         ].map((item, i) => (
