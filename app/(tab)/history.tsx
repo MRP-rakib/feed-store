@@ -54,7 +54,7 @@ export default function HistoryScreen() {
   };
 
   const formatWeight = (kg: number) => {
-    return kg >= 1000 ? `${(kg / 1000).toFixed(1)} Ton` : `${kg} kg`;
+    return kg >= 1000 ? `${(kg / 1000).toFixed(2)} Ton` : `${kg} kg`;
   };
 
   const handleDelete = (id: string) => {
