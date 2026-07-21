@@ -41,7 +41,7 @@ export default function HistoryScreen() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setHistoryList(data.map((item: any) => ({
+      setHistoryList((data || []).map((item: any) => ({
         ...item,
         category_name: item.categories?.name || 'Unknown',
         subcategory_name: item.subcategories?.name || 'Unknown'
@@ -54,7 +54,8 @@ export default function HistoryScreen() {
   };
 
   const formatWeight = (kg: number) => {
-    return kg >= 1000 ? `${(kg / 1000).toFixed(2)} Ton` : `${kg} kg`;
+    const safeKg = !isNaN(Number(kg)) ? Number(kg) : 0;
+    return safeKg >= 1000 ? `${(safeKg / 1000).toFixed(2)} Ton` : `${safeKg} kg`;
   };
 
   const handleDelete = (id: string) => {
@@ -69,8 +70,8 @@ export default function HistoryScreen() {
   };
 
   const filteredHistory = historyList.filter(item => 
-    item.category_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.note?.toLowerCase().includes(searchQuery.toLowerCase())
+    (item.category_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.note || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -83,64 +84,74 @@ export default function HistoryScreen() {
       <SectionList
         sections={[{ title: 'Records', data: filteredHistory }]}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4">
-            <Modal transparent visible={menuVisible === item.id} animationType="fade">
-              <TouchableWithoutFeedback onPress={() => setMenuVisible(null)}>
-                <View className="flex-1 bg-black/20 justify-center items-center">
-                  <View className="bg-white rounded-xl w-40 overflow-hidden shadow-lg">
-                    <TouchableOpacity className="p-4 border-b border-slate-100" onPress={() => {
-                      setMenuVisible(null);
-                      router.push({ pathname: "/history/EditEntryScreen", params: { entry: JSON.stringify(item) }});
-                    }}>
-                      <Text className="font-semibold text-slate-700">Edit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="p-4" onPress={() => handleDelete(item.id)}>
-                      <Text className="font-semibold text-red-500">Delete</Text>
-                    </TouchableOpacity>
+        renderItem={({ item }) => {
+          const totalBag = !isNaN(Number(item?.total_bag)) ? Number(item.total_bag) : 0;
+          const bagWeight = !isNaN(Number(item?.bag_weight)) ? Number(item.bag_weight) : 0;
+          const totalKg = !isNaN(Number(item?.total_kg)) ? Number(item.total_kg) : 0;
+          const bagPrice = !isNaN(Number(item?.bag_price)) ? Number(item.bag_price) : 0;
+          const totalPrice = !isNaN(Number(item?.total_price)) ? Number(item.total_price) : 0;
+          const transportCost = !isNaN(Number(item?.transport_cost)) ? Number(item.transport_cost) : 0;
+          const grandTotal = !isNaN(Number(item?.grand_total)) ? Number(item.grand_total) : 0;
+
+          return (
+            <View className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4">
+              <Modal transparent visible={menuVisible === item.id} animationType="fade">
+                <TouchableWithoutFeedback onPress={() => setMenuVisible(null)}>
+                  <View className="flex-1 bg-black/20 justify-center items-center">
+                    <View className="bg-white rounded-xl w-40 overflow-hidden shadow-lg">
+                      <TouchableOpacity className="p-4 border-b border-slate-100" onPress={() => {
+                        setMenuVisible(null);
+                        router.push({ pathname: "/history/EditEntryScreen", params: { entry: JSON.stringify(item) }});
+                      }}>
+                        <Text className="font-semibold text-slate-700">Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity className="p-4" onPress={() => handleDelete(item.id)}>
+                        <Text className="font-semibold text-red-500">Delete</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
+                </TouchableWithoutFeedback>
+              </Modal>
+
+              <View className="flex-row justify-between items-center mb-3">
+                <View>
+                  <Text className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
+                    {item?.entry_date ? new Date(item.entry_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                  </Text>
+                  <Text className="text-sm font-black text-slate-800 uppercase">{item?.category_name || 'Unknown'}</Text>
+                  <Text className="text-xs text-slate-400 font-semibold">{item?.subcategory_name || 'Unknown'}</Text>
                 </View>
-              </TouchableWithoutFeedback>
-            </Modal>
-
-            <View className="flex-row justify-between items-center mb-3">
-              <View>
-                <Text className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
-                  {new Date(item.entry_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </Text>
-                <Text className="text-sm font-black text-slate-800 uppercase">{item.category_name}</Text>
-                <Text className="text-xs text-slate-400 font-semibold">{item.subcategory_name}</Text>
+                <TouchableOpacity onPress={() => setMenuVisible(item.id)}>
+                  <SimpleLineIcons name="options-vertical" size={18} color="#64748B" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setMenuVisible(item.id)}>
-                <SimpleLineIcons name="options-vertical" size={18} color="#64748B" />
-              </TouchableOpacity>
-            </View>
 
-            <View className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 space-y-2">
-              <View className="flex-row justify-between">
-                <Text className="text-xs text-slate-500">Bags / Weight:</Text>
-                <Text className="text-xs font-bold text-slate-800">
-                  {item.total_bag} × {item.bag_weight}kg ({formatWeight(item.total_kg)})
-                </Text>
+              <View className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 space-y-2">
+                <View className="flex-row justify-between">
+                  <Text className="text-xs text-slate-500">Bags / Weight:</Text>
+                  <Text className="text-xs font-bold text-slate-800">
+                    {totalBag} × {bagWeight}kg ({formatWeight(totalKg)})
+                  </Text>
+                </View>
+                <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Price per Bag:</Text><Text className="text-xs font-bold text-slate-800">৳ {bagPrice.toLocaleString()}</Text></View>
+                <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Total Feed Cost:</Text><Text className="text-xs font-bold text-slate-800">৳ {totalPrice.toLocaleString()}</Text></View>
+                <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Transport:</Text><Text className="text-xs font-bold text-emerald-700">৳ {transportCost.toLocaleString()}</Text></View>
               </View>
-              <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Price per Bag:</Text><Text className="text-xs font-bold text-slate-800">৳ {item.bag_price.toLocaleString()}</Text></View>
-              <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Total Feed Cost:</Text><Text className="text-xs font-bold text-slate-800">৳ {item.total_price.toLocaleString()}</Text></View>
-              <View className="flex-row justify-between"><Text className="text-xs text-slate-500">Transport:</Text><Text className="text-xs font-bold text-emerald-700">৳ {item.transport_cost.toLocaleString()}</Text></View>
-            </View>
 
-            {item.note ? (
-              <View className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-100">
-                <Text className="text-[10px] font-bold text-amber-600 uppercase mb-0.5">Note:</Text>
-                <Text className="text-xs text-amber-900 italic">{item.note}</Text>
+              {item?.note ? (
+                <View className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-100">
+                  <Text className="text-[10px] font-bold text-amber-600 uppercase mb-0.5">Note:</Text>
+                  <Text className="text-xs text-amber-900 italic">{item.note}</Text>
+                </View>
+              ) : null}
+
+              <View className="flex-row justify-between items-center mt-3 pt-2 border-t border-slate-100">
+                <Text className="text-xs font-black uppercase text-slate-400">Grand Total</Text>
+                <Text className="text-base font-black text-slate-900">৳ {grandTotal.toLocaleString()}</Text>
               </View>
-            ) : null}
-
-            <View className="flex-row justify-between items-center mt-3 pt-2 border-t border-slate-100">
-              <Text className="text-xs font-black uppercase text-slate-400">Grand Total</Text>
-              <Text className="text-base font-black text-slate-900">৳ {item.grand_total.toLocaleString()}</Text>
             </View>
-          </View>
-        )}
+          );
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchHistory} />}
       />
     </View>

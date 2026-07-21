@@ -66,8 +66,12 @@ export default function MonthlyReportScreen() {
         const categoryObj = item.categories;
         const catName = Array.isArray(categoryObj) ? categoryObj[0]?.name : categoryObj?.name;
         const cat = (catName || 'Other').toLowerCase();
-        const cost = Number(item.grand_total) || 0;
-        const weight = Number(item.total_kg) || 0;
+        
+        const rawCost = item.grand_total;
+        const cost = (rawCost !== null && rawCost !== undefined && !isNaN(Number(rawCost))) ? Number(rawCost) : 0;
+
+        const rawWeight = item.total_kg;
+        const weight = (rawWeight !== null && rawWeight !== undefined && !isNaN(Number(rawWeight))) ? Number(rawWeight) : 0;
 
         if (cat.includes('boiler') || cat.includes('poultry')) {
           stats.breakdown.Chicken.cost += cost;
@@ -88,10 +92,11 @@ export default function MonthlyReportScreen() {
   }, [entries, selectedDate]);
 
   const formatWeight = (kg: number) => {
-    if (kg >= 1000) {
-      return `${(kg / 1000).toFixed(2)} Ton`;
+    const safeKg = !isNaN(Number(kg)) ? Number(kg) : 0;
+    if (safeKg >= 1000) {
+      return `${(safeKg / 1000).toFixed(2)} Ton`;
     }
-    return `${kg.toFixed(2)} kg`;
+    return `${safeKg.toFixed(2)} kg`;
   };
 
   if (loading) return <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color="#059669" /></View>;

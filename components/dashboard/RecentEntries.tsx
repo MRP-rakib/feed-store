@@ -16,7 +16,6 @@ interface RecentEntriesProps {
 }
 
 export default function RecentEntries({ entries = [] }: RecentEntriesProps) {
-  // সেফটি চেক: entries যদি অ্যারে না হয়, তবে খালি অ্যারে ধরে নেবে
   const safeEntries = Array.isArray(entries) ? entries : [];
   const displayedEntries = safeEntries.slice(0, 5);
 
@@ -41,7 +40,6 @@ export default function RecentEntries({ entries = [] }: RecentEntriesProps) {
       ) : (
         <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
           {displayedEntries.map((item, index) => {
-            // ক্যাটাগরি এবং সাব-ক্যাটাগরি অবজেক্ট বা অ্যারে যাই হোক না কেন তা নিরাপদে বের করার নিয়ম
             const categoryObj = item?.categories;
             const subCategoryObj = item?.subcategories;
 
@@ -52,6 +50,17 @@ export default function RecentEntries({ entries = [] }: RecentEntriesProps) {
             const subCategoryName = Array.isArray(subCategoryObj) 
               ? subCategoryObj[0]?.name 
               : subCategoryObj?.name;
+
+            const rawTotal = item?.grand_total;
+            const grandTotal = (rawTotal !== null && rawTotal !== undefined && !isNaN(Number(rawTotal)))
+              ? Number(rawTotal)
+              : 0;
+
+            const totalBag = item?.total_bag !== null && item?.total_bag !== undefined && !isNaN(Number(item.total_bag))
+              ? Number(item.total_bag)
+              : 0;
+
+            const formattedDate = item?.entry_date ? new Date(item.entry_date).toLocaleDateString('en-US') : '';
 
             return (
               <View 
@@ -65,15 +74,15 @@ export default function RecentEntries({ entries = [] }: RecentEntriesProps) {
                     {subCategoryName || 'Unknown Feed'}
                   </Text>
                   <Text className="text-slate-400 text-xs mt-0.5">
-                    {categoryName || 'Category'} • {item?.total_bag || 0} Bags
+                    {categoryName || 'Category'} • {totalBag} Bags
                   </Text>
                 </View>
                 <View className="items-end">
                   <Text className="text-emerald-600 font-black text-base">
-                    ৳ {Number(item?.grand_total || 0).toLocaleString()}
+                    ৳ {grandTotal.toLocaleString()}
                   </Text>
                   <Text className="text-slate-400 text-[10px] mt-0.5">
-                    {item?.entry_date ? new Date(item.entry_date).toLocaleDateString('en-US') : ''}
+                    {formattedDate}
                   </Text>
                 </View>
               </View>

@@ -10,11 +10,17 @@ export default function CategoryExpense({ data = [] }: CategoryExpenseProps) {
   const safeData = Array.isArray(data) ? data : [];
 
   const getStyle = (name: string) => {
-    switch (name) {
-      case 'Boiler': return { icon: 'bird', color: '#f59e0b' };
-      case 'Cattle': return { icon: 'cow', color: '#8b5cf6' };
-      case 'Fish': return { icon: 'fish', color: '#0ea5e9' };
-      default: return { icon: 'dots-horizontal', color: '#64748b' };
+    const formattedName = name ? String(name).toLowerCase().trim() : '';
+    
+    switch (formattedName) {
+      case 'boiler': 
+        return { icon: 'bird', color: '#f59e0b' };
+      case 'cattle': 
+        return { icon: 'cow', color: '#8b5cf6' };
+      case 'fish': 
+        return { icon: 'fish', color: '#0ea5e9' };
+      default: 
+        return { icon: 'dots-horizontal', color: '#64748b' };
     }
   };
 
@@ -25,19 +31,26 @@ export default function CategoryExpense({ data = [] }: CategoryExpenseProps) {
         {safeData.length === 0 ? (
           <Text className="text-slate-400 font-semibold text-center py-2">No category data</Text>
         ) : (
-          safeData.map((item) => {
-            const { icon, color } = getStyle(item?.categoryName);
-            const amount = Number(item?.amount || 0);
+          safeData.map((item, index) => {
+            const categoryName = item?.categoryName ? String(item.categoryName).trim() : 'Other';
+            const { icon, color } = getStyle(categoryName);
+            
+            const rawAmount = item?.amount;
+            const amount = (rawAmount !== null && rawAmount !== undefined && !isNaN(Number(rawAmount))) 
+              ? Number(rawAmount) 
+              : 0;
 
             return (
-              <View key={item?.categoryName || Math.random().toString()} className="flex-row justify-between items-center">
+              <View key={`${categoryName}-${index}`} className="flex-row justify-between items-center">
                 <View className="flex-row items-center gap-3">
                   <View className="w-8 h-8 rounded-full justify-center items-center" style={{ backgroundColor: `${color}20` }}>
                     <MaterialCommunityIcons name={icon as any} size={16} color={color} />
                   </View>
-                  <Text className="text-slate-700 font-bold text-base">{item?.categoryName || 'Other'}</Text>
+                  <Text className="text-slate-700 font-bold text-base">{categoryName}</Text>
                 </View>
-                <Text className="text-slate-900 font-black text-base">৳ {amount.toLocaleString()}</Text>
+                <Text className="text-slate-900 font-black text-base">
+                  ৳ {amount.toLocaleString()}
+                </Text>
               </View>
             );
           })
