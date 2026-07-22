@@ -4,18 +4,27 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { ActivityIndicator, View } from 'react-native';
-import Toast from 'react-native-toast-message'
+import Toast from 'react-native-toast-message';
 import { toastConfig } from '../components/ToastConfig';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
-  const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
+
+  const [fontsLoaded] = useFonts({
+    'inter': require('../assets/fonts/Inter/static/Inter_18pt-Regular.ttf'),
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
+      setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -26,7 +35,13 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (fontsLoaded && !authLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, authLoading]);
+
+  useEffect(() => {
+    if (authLoading || !fontsLoaded) return;
 
     const publicPages = ['login', 'register']; 
     const inAuthPage = publicPages.includes(segments[0]);
@@ -36,9 +51,9 @@ export default function RootLayout() {
     } else if (session && inAuthPage) {
       router.replace('/(tab)/home');
     }
-  }, [session, loading, segments]);
+  }, [session, authLoading, fontsLoaded, segments]);
 
-  if (loading) {
+  if (!fontsLoaded || authLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#059669" />
@@ -48,13 +63,13 @@ export default function RootLayout() {
 
   return (
     <>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="(tab)" />
-    </Stack>
-    <Toast config={toastConfig}/>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="(tab)" />
+      </Stack>
+      <Toast config={toastConfig}/>
     </>
   );
 }

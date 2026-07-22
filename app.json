@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Feed Store",
+    "name": "Kasir Feed Store",
     "slug": "feed-store",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,7 +39,8 @@
       "expo-sharing",
       "expo-image",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
